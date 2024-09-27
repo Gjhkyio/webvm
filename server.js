@@ -347,22 +347,39 @@ wss.on('connection', function (ws, req) {
 
 console.log('Listening on port:', wsPort);
 
-const rtAudio = new RtAudio(RtAudioApi.WINDOWS_WASAPI);
-rtAudio.openStream(null,
-	{ deviceId: rtAudio.getDevices().map(e=>e.name.trim()).indexOf(/*"CABLE Output (VB-Audio Virtual Cable)"*/"Virtual Audio Input (VB-Audio Virtual Cable)"),//rtAudio.getDefaultOutputDevice(),
-	  nChannels: 2,
-	  firstChannel: 0
-	},
-	RtAudioFormat.RTAUDIO_SINT16,
-	22050,
-	250*22050/1000,//50*22050/1000,// Frame size is 50ms
-	"webvm",
-	pcm => {
-		if(!pcm.every(p=>p==0x00))wss.clients.forEach(c=>{
-			c.send(pcm,{binary:true});
-		});
-	},null,RtAudioStreamFlags.RTAUDIO_MINIMIZE_LATENCY,e=>{if(!rtAudio.isStreamRunning())rtAudio.start();}
-);
+const audioApi = RtAudioApi.WINDOWS_WASAPI;
+const audioDeviceId = getDeviceId(rtAudio.getDevices(), "Virtual Audio Input (VB-Audio Virtual Cable)");
+const streamConfig = {
+  deviceId: audioDeviceId,
+  nChannels: 2,
+  firstChannel: 0
+};
+
+const audioFormat = RtAudioFormat.RTAUDIO_SINT16;
+const sampleRate = 22050;
+const frameSize = 50; // in milliseconds
+const frameBytes = frameSize * sampleRate / 1000;
+
+const rtAudio = new RtAudio(audioApi);
+rtAudio.openStream(null, streamConfig, audioFormat, sampleRate, frameBytes, "webvm", processAudioFrame, null, RtAudioStreamFlags.RTAUDIO_MINIMIZE_LATENCY, startStream);
+
+function getDeviceId(devices, deviceName) {
+  return devices.map(device => device.name.trim()).indexOf(deviceName);
+}
+
+function processAudioFrame(pcm) {
+  if (!pcm.every(p => p === 0x00)) {
+    wss.clients.forEach(client => {
+      client.send(pcm, { binary: true });
+    });
+  }
+}
+
+function startStream() {
+  if (!rtAudio.isStreamRunning()) {
+    rtAudio.start();
+  }
+	}
 
 rtAudio.start();
 
