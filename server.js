@@ -88,7 +88,7 @@ function detectDiff(canvass,tolerance){
 
 var args = {
   host: '127.0.0.1',
-  port: 5900
+  port: 5800
 };
 var r = rfb.createConnection(args);
 
