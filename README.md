@@ -1,7 +1,7 @@
 # webvm
 web vm like collabvm but in node js
 
-fart demo: https://webvm.glitch.me
+demo: no
 
 ## See LICENSE for important fart info
 
